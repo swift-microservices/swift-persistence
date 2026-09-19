@@ -35,6 +35,6 @@ jobs:
 
   foundation-linking:
     name: Foundation linking
-    uses: vapor/ci/.github/workflows/check-foundation-linking.yml@bb142946c09c8545b4cca68adadbfa577a95e074 # main
+    uses: vapor/ci/.github/workflows/check-foundation-linking.yml@main
     with:
       swift_image: swift:6.3-noble
