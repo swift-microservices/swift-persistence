@@ -29,7 +29,7 @@ struct ScopeDatabase<Scope: Sendable>: Database {
     let scope: Scope
 
     func withTransaction<T: Sendable>(
-        _ operation: @Sendable (Scope) async throws -> T
+        _ operation: @concurrent @Sendable (Scope) async throws -> T
     ) async throws -> T {
         try await operation(scope)
     }

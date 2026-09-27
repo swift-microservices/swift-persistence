@@ -44,6 +44,6 @@ public protocol Database<Scope>: Sendable {
     /// - Parameter operation: The unit of work. Receives the scope for this transaction.
     /// - Returns: Whatever `operation` returned, after the transaction committed.
     func withTransaction<T: Sendable>(
-        _ operation: @Sendable (Scope) async throws -> T
+        _ operation: @concurrent @Sendable (Scope) async throws -> T
     ) async throws -> T
 }
