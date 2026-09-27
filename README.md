@@ -31,19 +31,28 @@ the same error reaches the caller: no wrapper, so a use case catches the domain 
 repository raised.
 
 The transaction closure preserves the caller's actor isolation, including across suspension,
-so an actor can use its own state inside the closure.
+so an actor can capture non-Sendable local state inside the closure. Other work on the actor
+may run while the closure is suspended. Database rollback does not undo in-memory mutations.
+
+The package enables `NonisolatedNonsendingByDefault` in Swift 6 mode. Drivers adopting this
+signature should enable the feature too: it affects async callback types as well as methods.
+The callback is nonescaping and does not require `@Sendable` or `@concurrent`.
 
 ## The scope
 
 The `Scope` is what the closure receives: repositories built on the transaction's connection, so
 everything inside the closure shares one transaction.
 
+Finish all work using the scope before the closure returns or throws. Do not retain its
+transaction-bound repositories or launch tasks that use them beyond that point. `Sendable`
+does not extend a transaction's lifetime, and the type system does not enforce this lifetime.
+
 A use case declares the scope it needs as a protocol and takes `any Database` over it. The
 application's concrete scope conforms to every use case's protocol; a test supplies a scope of
 mocks. The use case is written once and sees neither.
 
 ```swift
-protocol CreatePostUseCaseScope {
+protocol CreatePostUseCaseScope: Sendable {
     var postRepository: any PostRepository { get }
 }
 

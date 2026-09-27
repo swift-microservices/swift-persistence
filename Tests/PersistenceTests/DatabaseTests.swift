@@ -33,23 +33,35 @@ struct DatabaseTests {
         #expect(await caller.calls == 2)
     }
 
+    @Test("Throwing preserves actor-local captures and propagates the operation's error")
+    func throwingOperationPreservesCallerIsolation() async throws {
+        let caller = TransactionCaller()
+        let database: any Database<Int> = ScopeDatabase(scope: 42)
+
+        await #expect(throws: OperationFailure.expected) {
+            try await caller.runThrowing(database: database)
+        }
+
+        #expect(await caller.calls == 2)
+    }
+
     @Test("A transaction preserves MainActor isolation across suspension")
     @MainActor
     func transactionInheritsMainActorIsolation() async throws {
         let database: any Database<Int> = ScopeDatabase(scope: 42)
-        var calls = 0
+        let state = LocalState()
 
         let result = try await database.withTransaction { scope in
             MainActor.preconditionIsolated()
-            calls += 1
+            state.calls += 1
             await Task.yield()
             MainActor.preconditionIsolated()
-            calls += 1
+            state.calls += 1
             return scope
         }
 
         #expect(result == 42)
-        #expect(calls == 2)
+        #expect(state.calls == 2)
     }
 }
 
@@ -66,18 +78,40 @@ struct ScopeDatabase<Scope: Sendable>: Database {
 }
 
 private actor TransactionCaller {
-    private(set) var calls = 0
+    private let state = LocalState()
+
+    var calls: Int { state.calls }
 
     func run(database: any Database<Int>) async throws -> Int {
         try await database.withTransaction { scope in
             self.preconditionIsolated()
-            calls += 1
+            state.calls += 1
             await Task.yield()
             self.preconditionIsolated()
-            calls += 1
+            state.calls += 1
             return scope
         }
     }
+
+    func runThrowing(database: any Database<Int>) async throws {
+        try await database.withTransaction { _ in
+            self.preconditionIsolated()
+            state.calls += 1
+            await Task.yield()
+            self.preconditionIsolated()
+            state.calls += 1
+            throw OperationFailure.expected
+        }
+    }
+}
+
+/// Intentionally non-Sendable: the transaction must allow actor-local reference captures.
+private final class LocalState {
+    var calls = 0
+}
+
+private enum OperationFailure: Error {
+    case expected
 }
 
 protocol PostRepository: Sendable {

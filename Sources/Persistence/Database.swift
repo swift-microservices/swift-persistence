@@ -16,7 +16,7 @@
 /// protocol. The use case never sees a connection, a driver, or a query.
 ///
 /// ```swift
-/// protocol CreatePostUseCaseScope {
+/// protocol CreatePostUseCaseScope: Sendable {
 ///     var postRepository: any PostRepository { get }
 /// }
 ///
@@ -33,13 +33,19 @@
 public protocol Database<Scope>: Sendable {
     /// What the work inside a transaction is handed: the repositories it may use, built on the
     /// transaction's connection.
+    /// The scope and its transaction-bound repositories must not be used after the operation
+    /// returns or throws. `Sendable` permits safe sharing; it does not extend their lifetime.
     associatedtype Scope: Sendable
 
     /// Runs `operation` in a transaction, committing when it returns and rolling back when it
     /// throws.
     ///
-    /// The operation preserves the caller's actor isolation, so it can use actor-local state
-    /// before and after suspension.
+    /// A closure formed in the caller's actor context can capture non-Sendable actor-local
+    /// state and access it before and after suspension. Other work on that actor may run while
+    /// the operation is suspended. Rolling back the database does not undo in-memory mutations.
+    ///
+    /// The operation is nonescaping. Complete all work using its scope before returning;
+    /// neither the scope nor its transaction-bound repositories may be retained for later use.
     ///
     /// The error `operation` throws is rethrown unchanged, so a caller catches the domain error
     /// its repository raised rather than a wrapper the driver put around it.
