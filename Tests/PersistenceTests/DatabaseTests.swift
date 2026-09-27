@@ -21,6 +21,48 @@ struct DatabaseTests {
 
         #expect(await postRepository.titles == ["Hello"])
     }
+
+    @Test("A transaction preserves the caller's actor isolation through any Database")
+    func transactionInheritsCallerIsolation() async throws {
+        let caller = TransactionCaller()
+        let database: any Database<Int> = ScopeDatabase(scope: 42)
+
+        let result = try await caller.run(database: database)
+
+        #expect(result == 42)
+        #expect(await caller.calls == 2)
+    }
+
+    @Test("Throwing preserves actor-local captures and propagates the operation's error")
+    func throwingOperationPreservesCallerIsolation() async throws {
+        let caller = TransactionCaller()
+        let database: any Database<Int> = ScopeDatabase(scope: 42)
+
+        await #expect(throws: OperationFailure.expected) {
+            try await caller.runThrowing(database: database)
+        }
+
+        #expect(await caller.calls == 2)
+    }
+
+    @Test("A transaction preserves MainActor isolation across suspension")
+    @MainActor
+    func transactionInheritsMainActorIsolation() async throws {
+        let database: any Database<Int> = ScopeDatabase(scope: 42)
+        let state = LocalState()
+
+        let result = try await database.withTransaction { scope in
+            MainActor.preconditionIsolated()
+            state.calls += 1
+            await Task.yield()
+            MainActor.preconditionIsolated()
+            state.calls += 1
+            return scope
+        }
+
+        #expect(result == 42)
+        #expect(state.calls == 2)
+    }
 }
 
 /// A database that hands one scope to every transaction. What commit and rollback mean is the
@@ -29,10 +71,47 @@ struct ScopeDatabase<Scope: Sendable>: Database {
     let scope: Scope
 
     func withTransaction<T: Sendable>(
-        _ operation: @Sendable (Scope) async throws -> T
+        _ operation: (Scope) async throws -> T
     ) async throws -> T {
         try await operation(scope)
     }
+}
+
+private actor TransactionCaller {
+    private let state = LocalState()
+
+    var calls: Int { state.calls }
+
+    func run(database: any Database<Int>) async throws -> Int {
+        try await database.withTransaction { scope in
+            self.preconditionIsolated()
+            state.calls += 1
+            await Task.yield()
+            self.preconditionIsolated()
+            state.calls += 1
+            return scope
+        }
+    }
+
+    func runThrowing(database: any Database<Int>) async throws {
+        try await database.withTransaction { _ in
+            self.preconditionIsolated()
+            state.calls += 1
+            await Task.yield()
+            self.preconditionIsolated()
+            state.calls += 1
+            throw OperationFailure.expected
+        }
+    }
+}
+
+/// Intentionally non-Sendable: the transaction must allow actor-local reference captures.
+private final class LocalState {
+    var calls = 0
+}
+
+private enum OperationFailure: Error {
+    case expected
 }
 
 protocol PostRepository: Sendable {
