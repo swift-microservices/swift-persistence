@@ -21,6 +21,36 @@ struct DatabaseTests {
 
         #expect(await postRepository.titles == ["Hello"])
     }
+
+    @Test("A transaction preserves the caller's actor isolation through any Database")
+    func transactionInheritsCallerIsolation() async throws {
+        let caller = TransactionCaller()
+        let database: any Database<Int> = ScopeDatabase(scope: 42)
+
+        let result = try await caller.run(database: database)
+
+        #expect(result == 42)
+        #expect(await caller.calls == 2)
+    }
+
+    @Test("A transaction preserves MainActor isolation across suspension")
+    @MainActor
+    func transactionInheritsMainActorIsolation() async throws {
+        let database: any Database<Int> = ScopeDatabase(scope: 42)
+        var calls = 0
+
+        let result = try await database.withTransaction { scope in
+            MainActor.preconditionIsolated()
+            calls += 1
+            await Task.yield()
+            MainActor.preconditionIsolated()
+            calls += 1
+            return scope
+        }
+
+        #expect(result == 42)
+        #expect(calls == 2)
+    }
 }
 
 /// A database that hands one scope to every transaction. What commit and rollback mean is the
@@ -29,9 +59,24 @@ struct ScopeDatabase<Scope: Sendable>: Database {
     let scope: Scope
 
     func withTransaction<T: Sendable>(
-        _ operation: @concurrent @Sendable (Scope) async throws -> T
+        _ operation: (Scope) async throws -> T
     ) async throws -> T {
         try await operation(scope)
+    }
+}
+
+private actor TransactionCaller {
+    private(set) var calls = 0
+
+    func run(database: any Database<Int>) async throws -> Int {
+        try await database.withTransaction { scope in
+            self.preconditionIsolated()
+            calls += 1
+            await Task.yield()
+            self.preconditionIsolated()
+            calls += 1
+            return scope
+        }
     }
 }
 

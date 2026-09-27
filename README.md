@@ -21,7 +21,7 @@ public protocol Database<Scope>: Sendable {
     associatedtype Scope: Sendable
 
     func withTransaction<T: Sendable>(
-        _ operation: @Sendable (Scope) async throws -> T
+        _ operation: (Scope) async throws -> T
     ) async throws -> T
 }
 ```
@@ -29,6 +29,9 @@ public protocol Database<Scope>: Sendable {
 When the closure returns, the transaction commits. When it throws, the transaction rolls back and
 the same error reaches the caller: no wrapper, so a use case catches the domain error its
 repository raised.
+
+The transaction closure preserves the caller's actor isolation, including across suspension,
+so an actor can use its own state inside the closure.
 
 ## The scope
 

@@ -38,12 +38,15 @@ public protocol Database<Scope>: Sendable {
     /// Runs `operation` in a transaction, committing when it returns and rolling back when it
     /// throws.
     ///
+    /// The operation preserves the caller's actor isolation, so it can use actor-local state
+    /// before and after suspension.
+    ///
     /// The error `operation` throws is rethrown unchanged, so a caller catches the domain error
     /// its repository raised rather than a wrapper the driver put around it.
     ///
     /// - Parameter operation: The unit of work. Receives the scope for this transaction.
     /// - Returns: Whatever `operation` returned, after the transaction committed.
     func withTransaction<T: Sendable>(
-        _ operation: @concurrent @Sendable (Scope) async throws -> T
+        _ operation: (Scope) async throws -> T
     ) async throws -> T
 }

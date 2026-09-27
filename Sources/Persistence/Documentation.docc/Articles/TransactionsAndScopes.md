@@ -8,6 +8,10 @@ An application's persistence has one entry point: ``Database/withTransaction(_:)
 it takes is the unit of work. When the closure returns, the transaction commits; when it throws,
 the transaction rolls back and the same error reaches the caller.
 
+The closure preserves the caller's actor isolation, including across suspension. An actor can
+read and update its own state inside the transaction without transferring the closure to
+another executor.
+
 ## A scope is what the work may touch
 
 The `Scope` is the value handed to the closure. It holds repositories, each built on the
