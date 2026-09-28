@@ -18,7 +18,7 @@ of them, and the database builds a fresh scope on each transaction's connection.
 A use case declares the scope it needs and takes `any Database` over it:
 
 ```swift
-protocol CreatePostUseCaseScope {
+protocol CreatePostUseCaseScope: Sendable {
     var postRepository: any PostRepository { get }
 }
 

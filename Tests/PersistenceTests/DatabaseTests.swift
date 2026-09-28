@@ -63,6 +63,27 @@ struct DatabaseTests {
         #expect(result == 42)
         #expect(state.calls == 2)
     }
+
+    @Test("Cancelling the caller's task reaches the operation and propagates its error", .timeLimit(.minutes(1)))
+    func cancellationReachesTheOperation() async throws {
+        let caller = TransactionCaller()
+        let database: any Database<Int> = ScopeDatabase(scope: 42)
+        let (started, continuation) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
+
+        let transaction = Task {
+            defer { continuation.finish() }
+            try await caller.runUntilCancelled(database: database, started: continuation)
+        }
+        defer { transaction.cancel() }
+
+        // Cancel only once the operation is running. Finishing the stream also releases this
+        // wait if the task ends before the signal.
+        for await _ in started { break }
+        transaction.cancel()
+
+        await #expect(throws: CancellationError.self) { try await transaction.value }
+        #expect(await caller.calls == 1)
+    }
 }
 
 /// A database that hands one scope to every transaction. What commit and rollback mean is the
@@ -101,6 +122,16 @@ private actor TransactionCaller {
             self.preconditionIsolated()
             state.calls += 1
             throw OperationFailure.expected
+        }
+    }
+
+    func runUntilCancelled(database: any Database<Int>, started: AsyncStream<Void>.Continuation) async throws {
+        try await database.withTransaction { _ in
+            self.preconditionIsolated()
+            state.calls += 1
+            started.yield(())
+            try await Task.sleep(for: .seconds(60))
+            state.calls += 1
         }
     }
 }
