@@ -1,9 +1,6 @@
-//
-//  Database.swift
-//  swift-persistence
-//
-//  Created by Zaid Rahhawi on 9/11/26.
-//
+// Copyright (c) 2026 Zaid Rahhawi
+// SPDX-License-Identifier: MIT
+// See LICENSE for license information.
 
 /// The transaction boundary of an application, and the scope it hands to the work inside it.
 ///

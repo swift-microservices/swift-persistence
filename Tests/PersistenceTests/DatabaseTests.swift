@@ -1,9 +1,6 @@
-//
-//  DatabaseTests.swift
-//  swift-persistence
-//
-//  Created by Zaid Rahhawi on 9/11/26.
-//
+// Copyright (c) 2026 Zaid Rahhawi
+// SPDX-License-Identifier: MIT
+// See LICENSE for license information.
 
 import Persistence
 import Testing
@@ -86,8 +83,9 @@ struct DatabaseTests {
     }
 }
 
-/// A database that hands one scope to every transaction. What commit and rollback mean is the
-/// driver's to prove; here only the shape matters.
+/// A database that hands one scope to every transaction.
+///
+/// What commit and rollback mean is the driver's to prove; here only the shape matters.
 struct ScopeDatabase<Scope: Sendable>: Database {
     let scope: Scope
 
