@@ -86,8 +86,9 @@ struct DatabaseTests {
     }
 }
 
-/// A database that hands one scope to every transaction. What commit and rollback mean is the
-/// driver's to prove; here only the shape matters.
+/// A database that hands one scope to every transaction.
+///
+/// What commit and rollback mean is the driver's to prove; here only the shape matters.
 struct ScopeDatabase<Scope: Sendable>: Database {
     let scope: Scope
 
