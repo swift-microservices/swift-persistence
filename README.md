@@ -1,5 +1,7 @@
 # swift-persistence
 
+[![Documentation](https://img.shields.io/badge/docc-read_documentation-blue)](https://swiftpackageindex.com/swift-microservices/swift-persistence/documentation)
+
 A transaction boundary that hands a unit of work exactly the repositories it may touch.
 
 One protocol, no dependencies. A domain target links it to say that its use cases run inside
