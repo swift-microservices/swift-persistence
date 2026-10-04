@@ -79,7 +79,7 @@ A driver proves the commit and rollback contract in its own tests, against its o
 
 ## Requirements
 
-Swift 6.3, macOS 15 or Linux.
+Swift 6.3, macOS 15 or Linux. No dependencies.
 
 ## Development
 
@@ -90,7 +90,8 @@ swift-format lint --strict --recursive Sources Tests    # what the soundness che
 
 ## Contributing
 
-Pull requests are welcome. Keep a change focused, and prove new behaviour with a test.
+Pull requests are welcome. Keep a change focused, prove new behaviour with a test, and label the
+pull request with its semantic version impact.
 
 ## License
 

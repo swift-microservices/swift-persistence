@@ -9,8 +9,11 @@ deliberately small. Read this before changing anything.
   Foundation, so a domain target can link it without pulling a driver in behind it.
 - Drivers live in their own packages (`swift-persistence-postgres`) and depend on this one by
   tag. Nothing driver-specific belongs here.
-- The one test states the shape consumers rely on: a use case takes `any Database<Scope>` and is
-  handed its scope. A change to the protocol is a change to that test first.
+- The tests state the contract consumers rely on: a use case takes `any Database<Scope>` and is
+  handed its scope; the operation keeps the caller's isolation from a custom actor and from
+  `@MainActor` across suspension; a thrown error reaches the caller unchanged with its captured
+  state intact; and cancelling the caller reaches the operation. A change to the protocol is a
+  change to those tests first.
 
 ## What does not belong here
 
