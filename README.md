@@ -9,7 +9,7 @@ transactions, without linking a database driver. The driver is a separate packag
 root links and the domain never sees.
 
 ```swift
-.package(url: "https://github.com/swift-microservices/swift-persistence.git", from: "0.2.0"),
+.package(url: "https://github.com/swift-microservices/swift-persistence.git", from: "1.0.0"),
 ```
 
 ```swift
@@ -85,7 +85,7 @@ Swift 6.3, macOS 15 or Linux. No dependencies.
 
 ```sh
 swift test
-swift-format lint --strict --recursive Sources Tests    # what the soundness check runs
+swift-format lint --strict --recursive Package.swift Sources Tests    # what the soundness check runs
 ```
 
 ## Contributing

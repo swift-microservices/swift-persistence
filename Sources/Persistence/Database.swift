@@ -30,6 +30,7 @@
 public protocol Database<Scope>: Sendable {
     /// What the work inside a transaction is handed: the repositories it may use, built on the
     /// transaction's connection.
+    ///
     /// The scope and its transaction-bound repositories must not be used after the operation
     /// returns or throws. `Sendable` permits safe sharing; it does not extend their lifetime.
     associatedtype Scope: Sendable
